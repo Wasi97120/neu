@@ -1,7 +1,11 @@
+import logging
+
 import anthropic
 
 from app.config import settings
 from app.models.call import ConversationTurn
+
+logger = logging.getLogger(__name__)
 
 
 class AIService:
@@ -39,14 +43,20 @@ class AIService:
             for turn in self.conversations[call_sid]
         ]
 
-        response = self.client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=150,
-            system=settings.agent_system_prompt,
-            messages=messages,
-        )
-
-        assistant_text = response.content[0].text
+        try:
+            response = self.client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=150,
+                system=settings.agent_system_prompt,
+                messages=messages,
+            )
+            assistant_text = response.content[0].text
+        except Exception as e:
+            logger.error("Claude API error: %s", e)
+            assistant_text = (
+                "Entschuldigung, ich kann gerade nicht antworten. "
+                "Bitte versuchen Sie es spaeter erneut oder rufen Sie uns direkt an."
+            )
 
         self.conversations[call_sid].append(
             ConversationTurn(role="assistant", content=assistant_text)
